@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>戦術対抗戦 編成管理</title>
+  <link rel="stylesheet" href="style.css">
+   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+  <h1>戦術対抗戦 編成管理</h1>
+
+ <div id="teamForm">
+  <input type="text" id="username" placeholder="ユーザー名" required>
+
+  <div class="dropdown-wrapper" id="dropdown-D1"></div>
+  <div class="dropdown-wrapper" id="dropdown-D2"></div>
+  <div class="dropdown-wrapper" id="dropdown-D3"></div>
+  <div class="dropdown-wrapper" id="dropdown-D4"></div>
+  <div class="dropdown-wrapper" id="dropdown-S1"></div>
+  <div class="dropdown-wrapper" id="dropdown-S2"></div>
+
+  <button id="submitBtn">追加</button>
+  <button id="cancelBtn" style="display: none;">中止</button>
+
+</div>
+
+  <div style="margin: 10px 0;">
+  <button id="exportBtn">エクスポート</button>
+  <input type="file" id="importFile" accept=".json" />
+  </div>
+
+  <table id="teamTable">
+    <thead>
+  <tr>
+    <th data-sort="name">名前</th>
+    <th>D1</th>
+    <th>D2</th>
+    <th>D3</th>
+    <th>D4</th>
+    <th>S1</th>
+    <th>S2</th>
+    <th data-sort="date">日付</th>
+    <th>操作</th>
+  </tr>
+</thead>
+
+    <tbody></tbody>
+  </table>
+
+  <script src="script.js"></script>
+</body>
+</html>

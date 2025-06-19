@@ -1,0 +1,192 @@
+form {
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+form input, form select, form button {
+  padding: 5px;
+  font-size: 14px;
+}
+
+
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background-color: #f8f8ff;
+}
+
+h1 {
+  text-align: center;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  text-align: center;
+  padding: 5px;
+}
+
+img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+tr.warning {
+  background-color: #ffe0e0;
+}
+
+form.editing {
+  background-color: #fffbe0;
+  border: 1px solid #ffc107;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+th.sorted-asc::after {
+  content: ' ▲';
+  font-size: 12px;
+}
+
+th.sorted-desc::after {
+  content: ' ▼';
+  font-size: 12px;
+}
+
+th[data-sort] {
+  cursor: pointer;
+  position: relative;
+  padding-right: 1em;
+}
+
+th[data-sort]::after {
+  content: '⇅'; /* デフォルト */
+  font-size: 10px;
+  position: absolute;
+  right: 5px;
+  color: #bbb;
+}
+
+th.sorted-asc::after {
+  content: ' ▲';
+  color: #000;
+}
+
+th.sorted-desc::after {
+  content: ' ▼';
+  color: #000;
+}
+
+.dropdown-wrapper {
+  margin-bottom: 10px;
+  position: relative;
+  width: 200px;
+}
+
+.dropdown-select {
+  border: 1px solid #ccc;
+  padding: 6px 10px;
+  cursor: pointer;
+  background: #fff;
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-select img {
+  width: 24px;
+  height: 24px;
+  margin-right: 6px;
+}
+
+.dropdown-options {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #ccc;
+  z-index: 10;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.dropdown-options .option {
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.dropdown-options .option:hover {
+  background-color: #f0f0f0;
+}
+
+.dropdown-options .option img {
+  width: 24px;
+  height: 24px;
+  margin-right: 6px;
+}
+
+#teamForm {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap; /* モバイル時の折り返し */
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+#teamForm input[type="text"],
+#teamForm .dropdown-wrapper,
+#teamForm button {
+  flex: none;
+}
+
+#teamForm.editing {
+  background-color: #fff7d1;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #eac75f;
+}
+
+#submitBtn, #cancelBtn {
+  margin-left: 5px;
+}
+
+tr.history-row td {
+  font-size: 13px;
+  color: #555;
+  background: #f0f0f0;
+}
+
+.history-row {
+  background-color: #f5f5f5;
+  font-size: 0.9em;
+}
+.history-container {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.history-entry {
+  background: #fff;
+  border-left: 4px solid #888;
+  padding: 4px;
+}
+
+.history-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
