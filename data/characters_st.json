@@ -571,6 +571,10 @@
     "name": "ユカリ",
     "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/st/yukari.png"
   },
+    {
+    "name": "ユカリ（水着）",
+    "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/st/yukari_swimsuit.png"
+  },
   {
     "name": "ユズ",
     "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/st/yuzu.png"
@@ -598,6 +602,10 @@
   {
     "name": "レンゲ",
     "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/st/renge.png"
+  },
+   {
+    "name": "レンゲ（水着）",
+    "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/st/renge_swimsuit.png"
   },
   {
     "name": "ワカモ",
