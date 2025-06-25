@@ -1,6 +1,7 @@
 const stCharUrl = 'data/characters_st.json';
 const spCharUrl = 'data/characters_sp.json';
 
+
 let stImages = {}, spImages = {};
 let stNames = [], spNames = [];
 
@@ -52,12 +53,10 @@ function sortCharactersByPriority(characters, usageMap, fixedTop = []) {
 
 function saveToHistory(name, oldEntry) {
   if (!historyMap[name]) historyMap[name] = [];
-  historyMap[name].unshift(oldEntry);
-  if (historyMap[name].length > 30) {
-    historyMap[name].pop(); // 30件を超えたら削除
-  }
+  historyMap[name].unshift(oldEntry); // 最新を先頭に追加
   saveHistory();
 }
+
 
 function saveHistory() {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(historyMap));
@@ -141,12 +140,15 @@ function populateTable() {
   <td>${renderCharacterCell(entry.S1)}</td>
   <td>${renderCharacterCell(entry.S2)}</td>
   <td>${entry.date}</td>
+  <td class="memo-cell">${entry.memo || ''}</td> <!-- ✅ 追加 -->
   <td>
     <button onclick="editEntry(${index})">🔧編集</button>
     <button onclick="deleteEntry(${index})">🗑️削除</button>
     <button class="history-btn" data-name="${entry.name}">📜履歴</button>
+    <button class="inventory-btn" data-name="${entry.name}">🗃️手持ち</button>
   </td>
 `;
+
 
     tbody.appendChild(row);
   row.querySelector('.history-btn').addEventListener('click', () => {
@@ -157,7 +159,7 @@ function populateTable() {
     return;
   }
 
-  const history = historyMap[name] || [];
+  const history = (historyMap[name] || []).slice(0, 20); // 最新20件だけ表示
   if (history.length === 0) return;
 
   const allImages = { ...stImages, ...spImages };
@@ -166,7 +168,7 @@ function populateTable() {
   historyRow.className = `history-row history-${name}`;
   historyRow.innerHTML = `<td colspan="8">
     <div class="history-container">
-      ${history.map(e => `
+      ${history.map((e, i) => `
         <div class="history-entry">
           <strong>${e.date}</strong>：
           ${[e.D1, e.D2, e.D3, e.D4].filter(Boolean).map(ch => `
@@ -176,11 +178,66 @@ function populateTable() {
           ${[e.S1, e.S2].filter(Boolean).map(ch => `
             <img src="${allImages[ch] || ''}" alt="${ch}" class="history-icon" title="${ch}">
           `).join('')}
+          <button class="delete-history-btn" data-index="${i}">❌</button>
         </div>
       `).join('')}
     </div>
   </td>`;
   row.after(historyRow);
+
+  historyRow.querySelectorAll('.delete-history-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const i = parseInt(btn.dataset.index);
+    Swal.fire({
+      title: '履歴削除の確認',
+      text: `この履歴（${history[i].date}）を削除しますか？`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: '削除',
+      cancelButtonText: 'キャンセル',
+    }).then(result => {
+      if (result.isConfirmed) {
+        historyMap[name].splice(i, 1);
+        saveHistory();
+        populateTable(); // 表を更新
+      }
+    });
+  });
+});
+
+
+});
+row.querySelector('.inventory-btn').addEventListener('click', () => {
+  const name = entry.name;
+  const existing = tbody.querySelector(`.inventory-${name}`);
+  if (existing) {
+    existing.remove(); // 折りたたみ
+    return;
+  }
+
+  const history = historyMap[name] || [];
+  if (history.length === 0) return;
+
+  const allImages = { ...stImages, ...spImages };
+
+  // キャラ名重複なしセット作成
+  const allChars = new Set();
+  history.forEach(h => {
+    [h.D1, h.D2, h.D3, h.D4, h.S1, h.S2].forEach(c => {
+      if (c && c !== '未選択') allChars.add(c);
+    });
+  });
+
+  const inventoryRow = document.createElement('tr');
+  inventoryRow.className = `inventory-row inventory-${name}`;
+  inventoryRow.innerHTML = `<td colspan="10">
+    <div class="inventory-container">
+      ${[...allChars].map(c => `
+        <img src="${allImages[c] || ''}" alt="${c}" class="history-icon" title="${c}">
+      `).join('')}
+    </div>
+  </td>`;
+  row.after(inventoryRow);
 });
 
 
@@ -201,11 +258,23 @@ function renderCharacterCell(name) {
 
 
 function deleteEntry(index) {
-  if (!confirm('本当に削除しますか？')) return;
-  teamData.splice(index, 1);
-  saveData();
-  populateTable();
+  Swal.fire({
+    title: '削除の確認',
+    text: 'この編成を本当に削除しますか？',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: '削除する',
+    cancelButtonText: 'キャンセル',
+  }).then((result) => {
+    if (result.isConfirmed) {
+      teamData.splice(index, 1);
+      saveData();
+      populateTable();
+      Swal.fire('削除されました', '', 'success');
+    }
+  });
 }
+
 
 
 function editEntry(index) {
@@ -220,6 +289,7 @@ function editEntry(index) {
   setDropdown('S1', entry.S1);
   setDropdown('S2', entry.S2);
 
+  document.getElementById('memo').value = entry.memo || '';
   document.getElementById('teamForm').classList.add('editing');
   document.getElementById('submitBtn').textContent = '更新';
   document.getElementById('cancelBtn').style.display = 'inline-block';
@@ -236,6 +306,7 @@ function setDropdown(id, name) {
   }
 }
 
+//ここかな？
 document.getElementById('submitBtn').addEventListener('click', e => {
   e.preventDefault();
 
@@ -256,6 +327,7 @@ document.getElementById('submitBtn').addEventListener('click', e => {
   const D4 = getValue('D4');
   const S1 = getValue('S1');
   const S2 = getValue('S2');
+  
 
   const now = new Date();
   const today = now.toLocaleString('ja-JP', {
@@ -265,7 +337,8 @@ document.getElementById('submitBtn').addEventListener('click', e => {
   minute: '2-digit'
 });
 
-  const entry = { name, D1, D2, D3, D4, S1, S2, date: today };
+  const memo = document.getElementById('memo').value.trim();
+  const entry = { name, D1, D2, D3, D4, S1, S2, date: today, memo };
   const existingIndex = teamData.findIndex(e => e.name === name);
 
   // 🔧 entry定義後にチェック
@@ -432,12 +505,13 @@ function hasDuplicateCharacters(entry) {
   const chars = [entry.D1, entry.D2, entry.D3, entry.D4, entry.S1, entry.S2];
   const seen = new Set();
   return chars.some(char => {
-    if (!char) return false; // 🔧 空白は無視する
+    if (!char || char === '未選択') return false; // ❗未選択をスキップ
     if (seen.has(char)) return true;
     seen.add(char);
     return false;
   });
 }
+
 
 
 function sortTableBy(key) {
@@ -475,6 +549,7 @@ function sortTableBy(key) {
 
 function finalizeForm() {
   document.getElementById('username').value = '';
+  document.getElementById('memo').value = '';
   document.getElementById('teamForm').classList.remove('editing');
   document.getElementById('submitBtn').textContent = '追加';
   document.getElementById('cancelBtn').style.display = 'none';

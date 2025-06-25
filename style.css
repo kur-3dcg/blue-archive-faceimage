@@ -190,3 +190,29 @@ tr.history-row td {
   margin-right: 4px;
   vertical-align: middle;
 }
+
+#memo {
+  width: 100%;
+  max-width: 500px;
+  height: 60px;
+  padding: 6px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.inventory-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+}
+
+.inventory-row {
+  background-color: #eef8ff;
+}
+
+td.memo-cell {
+  white-space: pre-wrap; /* 改行・折り返しを許可 */
+  word-break: break-word; /* 長い単語でも折り返し */
+  max-width: 300px; /* 必要に応じて制限幅を調整 */
+}
