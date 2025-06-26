@@ -141,6 +141,7 @@ function populateTable() {
   <td>${renderCharacterCell(entry.S2)}</td>
   <td>${entry.date}</td>
   <td class="memo-cell">${entry.memo || ''}</td> <!-- ✅ 追加 -->
+   
   <td>
     <button onclick="editEntry(${index})">🔧編集</button>
     <button onclick="deleteEntry(${index})">🗑️削除</button>
@@ -151,6 +152,11 @@ function populateTable() {
 
 
     tbody.appendChild(row);
+    // ✅ 追加（この位置が正解）
+row.addEventListener('click', () => {
+  document.querySelectorAll('#teamTable tbody tr').forEach(r => r.classList.remove('selected'));
+  row.classList.add('selected');
+});
   row.querySelector('.history-btn').addEventListener('click', () => {
   const name = entry.name;
   const existing = tbody.querySelector(`.history-${name}`);
@@ -200,6 +206,7 @@ function populateTable() {
         historyMap[name].splice(i, 1);
         saveHistory();
         populateTable(); // 表を更新
+
       }
     });
   });
@@ -270,6 +277,7 @@ function deleteEntry(index) {
       teamData.splice(index, 1);
       saveData();
       populateTable();
+
       Swal.fire('削除されました', '', 'success');
     }
   });
@@ -293,7 +301,11 @@ function editEntry(index) {
   document.getElementById('teamForm').classList.add('editing');
   document.getElementById('submitBtn').textContent = '更新';
   document.getElementById('cancelBtn').style.display = 'inline-block';
+
+  // ✅ 追加：フォームへスクロール
+  document.getElementById('teamForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
 
 
 function setDropdown(id, name) {
@@ -412,6 +424,7 @@ createDropdown('S2', sortedSp, () => {});
 
   loadData();
   populateTable();
+
 });
 
 
@@ -467,6 +480,7 @@ document.getElementById('importFile').addEventListener('change', e => {
         teamData = imported;
         saveData();      // ローカルにも保存
         populateTable(); // 表更新
+
         alert('インポート成功！');
       } else {
         alert('無効なファイル形式です。');
@@ -545,6 +559,7 @@ function sortTableBy(key) {
   });
 
   populateTable();
+
 }
 
 function finalizeForm() {
@@ -562,6 +577,7 @@ function finalizeForm() {
   });
 
   populateTable();
+
   saveData();
 }
 
