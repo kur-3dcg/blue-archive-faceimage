@@ -147,6 +147,7 @@ function populateTable() {
     <button onclick="deleteEntry(${index})">🗑️削除</button>
     <button class="history-btn" data-name="${entry.name}">📜履歴</button>
     <button class="inventory-btn" data-name="${entry.name}">🗃️手持ち</button>
+    <button class="share-btn" data-index="${index}">🐦共有</button>
   </td>
 `;
 
@@ -245,6 +246,15 @@ row.querySelector('.inventory-btn').addEventListener('click', () => {
     </div>
   </td>`;
   row.after(inventoryRow);
+});
+
+row.querySelector('.share-btn').addEventListener('click', () => {
+  const entry = teamData[index];
+  const characters = [entry.D1, entry.D2, entry.D3, entry.D4, entry.S1, entry.S2]
+    .filter(Boolean).join(' / ');
+  const tweet = `沼った防衛\n${characters}\n#ブルアカ #戦術対抗戦`;
+  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`;
+  window.open(url, '_blank');
 });
 
 
