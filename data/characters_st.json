@@ -264,6 +264,10 @@
     "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/st/seia.png"
   },
   {
+    "name": "セイア（水着）",
+    "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/st/seia_swimsuit.png"
+  },
+  {
     "name": "セナ（私服）",
     "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/st/sena_private.png"
   },
@@ -374,6 +378,10 @@
   {
     "name": "ハスミ（体操服）",
     "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/st/hasumi_gym.png"
+  },
+  {
+    "name": "ハスミ（水着）",
+    "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/st/hasumi_swimsuit.png"
   },
   {
     "name": "ハナコ（水着）",
