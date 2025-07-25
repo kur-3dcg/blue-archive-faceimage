@@ -635,3 +635,10 @@ document.getElementById('cancelBtn').addEventListener('click', () => {
   editIndex = null;
   finalizeForm();
 });
+
+document.getElementById('pageShareBtn').addEventListener('click', () => {
+  const tweet = `ブルアカ対抗戦の編成管理に便利なツール！\n使ってみてください👇\n${location.href}\n#ブルアカ #対抗戦 #編成記録ツール`;
+  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`;
+  window.open(url, '_blank');
+});
+
