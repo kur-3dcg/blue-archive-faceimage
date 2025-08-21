@@ -21,7 +21,10 @@ const fixedTopCharacters = [
   'サオリ',
   'シュン',
   'レイサ',
-  'マリナ'
+  'マリナ',
+  'カノエ',
+  'ハスミ（水着）',
+  'ツルギ'
 ];
 
 const fixedTopCharactersSP = [
