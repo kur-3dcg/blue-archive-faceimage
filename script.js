@@ -28,7 +28,11 @@ const fixedTopCharacters = [
   'マリナ',
   'ツバキ',
   'エイミ',
-  'アツコ'
+  'アツコ',
+  'ネル（制服）',
+  'ネル（バニーガール）',
+  'ユズ',
+  'アズサ（水着）'
 ];
 
 const fixedTopCharactersSP = [
@@ -37,7 +41,8 @@ const fixedTopCharactersSP = [
   'サキ',
   'ノドカ（温泉）',
   'レイサ（マジカル）',
-  'シロコ（水着）'
+  'シロコ（水着）',
+  'ヤクモ'
 ];
 
 console.log("固定キャラ：", fixedTopCharacters);
