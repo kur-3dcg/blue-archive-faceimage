@@ -276,6 +276,10 @@
     "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/sp/moe.png"
   },
   {
+    "name": "ヤクモ",
+    "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/sp/yakumo.png"
+  },
+  {
     "name": "ユズ（メイド）",
     "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/sp/yuzu_maid.png"
   },
@@ -288,12 +292,12 @@
     "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/sp/rio.png"
   },
   {
-    "name": "レイサ（マジカル）",
-    "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/sp/reisa_magic.png"
-  },
-  {
     "name": "リツ",
     "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/sp/ritsu.png"
+  },
+  {
+    "name": "レイサ（マジカル）",
+    "image": "https://raw.githubusercontent.com/kur-3dcg/blue-archive-faceimage/main/images/sp/ritsu_magic.png"
   },
   {
     "name": "佐天涙子",
