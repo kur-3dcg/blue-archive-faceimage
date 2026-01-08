@@ -2,69 +2,154 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>戦術対抗戦 編成管理</title>
   <link rel="stylesheet" href="style.css">
-   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700;900&family=Orbitron:wght@700&display=swap" rel="stylesheet">
 
-   <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-DKEWBG0PYP"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-DKEWBG0PYP');
-</script>
-
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DKEWBG0PYP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-DKEWBG0PYP');
+  </script>
 </head>
 <body>
-  <h1>戦術対抗戦 編成管理</h1>
+  <div class="app-container">
+    <header class="app-header">
+      <h1><span class="header-icon">⚔</span> 戦術対抗戦 編成管理</h1>
+      <p class="header-subtitle">TACTICAL BATTLE FORMATION MANAGER</p>
+    </header>
 
-  <button id="pageShareBtn" title="このツールをTwitterで共有">
-  <img src="https://abs.twimg.com/favicons/twitter.2.ico" alt="X" class="twitter-logo">
-  </button>
+    <button id="pageShareBtn" title="このツールをTwitterで共有">
+      <img src="https://abs.twimg.com/favicons/twitter.2.ico" alt="X" class="twitter-logo">
+    </button>
 
+    <section class="form-section">
+      <div class="section-header with-toggle" id="formSectionHeader">
+        <span class="section-icon">📝</span>
+        <h2>編成登録</h2>
+        <button class="section-toggle-btn" id="newEntryBtn">
+          <span>➕</span> 新規登録
+        </button>
+      </div>
+      
+      <div class="form-content hidden" id="formContent">
+        <div id="teamForm">
+          <div class="form-row">
+            <div class="form-group user-group">
+              <label>ユーザー</label>
+              <div class="user-input-wrapper">
+                <div class="dropdown-wrapper" id="dropdown-userIcon"></div>
+                <input type="text" id="username" placeholder="ユーザー名" required>
+              </div>
+            </div>
+          </div>
 
- <div id="teamForm">
-  <input type="text" id="username" placeholder="ユーザー名" required>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="group-label defense-label">🛡 防衛 (STRIKER)</label>
+              <div class="char-slots">
+                <div class="dropdown-wrapper" id="dropdown-D1"></div>
+                <div class="dropdown-wrapper" id="dropdown-D2"></div>
+                <div class="dropdown-wrapper" id="dropdown-D3"></div>
+                <div class="dropdown-wrapper" id="dropdown-D4"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="group-label defense-label">🛡 防衛 (SPECIAL)</label>
+              <div class="char-slots">
+                <div class="dropdown-wrapper" id="dropdown-S1"></div>
+                <div class="dropdown-wrapper" id="dropdown-S2"></div>
+              </div>
+            </div>
+          </div>
 
-  <div class="dropdown-wrapper" id="dropdown-D1"></div>
-  <div class="dropdown-wrapper" id="dropdown-D2"></div>
-  <div class="dropdown-wrapper" id="dropdown-D3"></div>
-  <div class="dropdown-wrapper" id="dropdown-D4"></div>
-  <div class="dropdown-wrapper" id="dropdown-S1"></div>
-  <div class="dropdown-wrapper" id="dropdown-S2"></div>
-  <textarea id="memo" placeholder="メモを入力（任意）"></textarea>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="group-label attack-label">⚔ 攻め (STRIKER)</label>
+              <div class="char-slots">
+                <div class="dropdown-wrapper" id="dropdown-A1"></div>
+                <div class="dropdown-wrapper" id="dropdown-A2"></div>
+                <div class="dropdown-wrapper" id="dropdown-A3"></div>
+                <div class="dropdown-wrapper" id="dropdown-A4"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="group-label attack-label">⚔ 攻め (SPECIAL)</label>
+              <div class="char-slots">
+                <div class="dropdown-wrapper" id="dropdown-SP1"></div>
+                <div class="dropdown-wrapper" id="dropdown-SP2"></div>
+              </div>
+            </div>
+          </div>
 
-  <button id="submitBtn">追加</button>
-  <button id="cancelBtn" style="display: none;">中止</button>
+          <div class="form-row">
+            <div class="form-group memo-group">
+              <label>メモ</label>
+              <textarea id="memo" placeholder="メモを入力（任意）"></textarea>
+            </div>
+          </div>
 
-</div>
+          <div class="form-actions">
+            <button id="submitBtn" class="btn btn-primary">
+              <span class="btn-icon">➕</span> 追加
+            </button>
+            <button id="cancelBtn" class="btn btn-secondary">
+              <span class="btn-icon">✖</span> 閉じる
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
 
-  <div style="margin: 10px 0;">
-  <button id="exportBtn">エクスポート</button>
-  <input type="file" id="importFile" accept=".json" />
+    <section class="tools-section">
+      <button id="exportBtn" class="btn btn-tool">
+        <span class="btn-icon">📤</span> エクスポート
+      </button>
+      <label class="btn btn-tool import-label">
+        <span class="btn-icon">📥</span> インポート
+        <input type="file" id="importFile" accept=".json" />
+      </label>
+      <button id="toggleAttackBtn" class="btn btn-tool">
+        <span class="btn-icon">⚔</span> <span id="attackLabel">攻めを非表示</span>
+      </button>
+      <button id="toggleMemoBtn" class="btn btn-tool">
+        <span class="btn-icon">📝</span> <span id="memoLabel">メモを表示</span>
+      </button>
+    </section>
+
+    <section class="table-section">
+      <div class="section-header">
+        <span class="section-icon">📋</span>
+        <h2>登録一覧</h2>
+      </div>
+      
+      <div class="table-container">
+        <table id="teamTable">
+          <thead>
+            <tr>
+              <th data-sort="name" class="th-name">ユーザー</th>
+              <th class="th-defense">🛡 防衛</th>
+              <th class="th-attack">⚔ 攻め</th>
+              <th data-sort="date" class="th-date">日付</th>
+              <th class="th-actions">操作</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      <p>BLUE ARCHIVE - TACTICAL FORMATION TOOL</p>
+    </footer>
   </div>
-
-  <table id="teamTable">
-    <thead>
-  <tr>
-    <th data-sort="name">名前</th>
-    <th>D1</th>
-    <th>D2</th>
-    <th>D3</th>
-    <th>D4</th>
-    <th>S1</th>
-    <th>S2</th>
-    <th data-sort="date">日付</th>
-    <th>メモ</th>
-    <th>操作</th>
-  </tr>
-</thead>
-
-    <tbody></td>
-    </tbody>
-  </table>
 
   <script src="script.js"></script>
 </body>

@@ -1,47 +1,40 @@
 const stCharUrl = 'data/characters_st.json';
 const spCharUrl = 'data/characters_sp.json';
 
-
 let stImages = {}, spImages = {};
 let stNames = [], spNames = [];
 
 const STORAGE_KEY = 'tacticalTeamData';
+const HISTORY_KEY = 'tacticalHistoryData';
+const FREQ_KEY = 'characterUsageFreq';
+const VIEW_STATE_KEY = 'tacticalViewState';
+
 let teamData = [];
 let editIndex = null;
 let currentSort = { key: null, asc: true };
+let historyMap = {};
+let usageFreq = {};
 
-let historyMap = {}; // ユーザー名 => 過去のentry[] の連想配列
-const HISTORY_KEY = 'tacticalHistoryData';
+// 表示状態（localStorageから復元）
+let viewState = {
+  showAttack: true,
+  showMemo: false
+};
 
 const fixedTopCharacters = [
-  'ハナコ（水着）',
-  'シュン',
-  'ツルギ',
-  'ホシノ（臨戦）',
-  'ホシノ（攻撃）',
-  'ホシノ（防御）',
-  'ミヤコ',
-  'ユウカ',
-  'マリナ',
-  'ツバキ',
-  'エイミ',
-  'アツコ',
-  'ネル（バニーガール）',
-  'カノエ'
+  'ハナコ（水着）', 'シュン', 'ツルギ', 'ホシノ（臨戦）', 'ホシノ（攻撃）',
+  'ホシノ（防御）', 'ミヤコ', 'ユウカ', 'マリナ', 'ツバキ', 'エイミ',
+  'アツコ', 'ネル（バニーガール）', 'カノエ'
 ];
 
 const fixedTopCharactersSP = [
-  'アツコ（水着）',
-  'ヒビキ',
-  'サキ',
-  'レイサ（マジカル）',
-  'シロコ（水着）',
-  'ヤクモ',
-  'ミチル（ドレス）'
+  'アツコ（水着）', 'ヒビキ', 'サキ', 'レイサ（マジカル）',
+  'シロコ（水着）', 'ヤクモ', 'ミチル（ドレス）'
 ];
 
-console.log("固定キャラ：", fixedTopCharacters);
-console.log("STキャラ候補：", stNames);
+// ========================================
+// ユーティリティ関数
+// ========================================
 
 function sortCharactersByPriority(characters, usageMap, fixedTop = []) {
   return [...characters].sort((a, b) => {
@@ -49,19 +42,77 @@ function sortCharactersByPriority(characters, usageMap, fixedTop = []) {
     const bFixed = fixedTop.includes(b.name);
     if (aFixed && !bFixed) return -1;
     if (!aFixed && bFixed) return 1;
-
     const aCount = usageMap[a.name] || 0;
     const bCount = usageMap[b.name] || 0;
-    return bCount - aCount; // 使用頻度の高い順
+    return bCount - aCount;
   });
 }
 
-function saveToHistory(name, oldEntry) {
-  if (!historyMap[name]) historyMap[name] = [];
-  historyMap[name].unshift(oldEntry); // 最新を先頭に追加
-  saveHistory();
+function migrateEntry(entry) {
+  return {
+    name: entry.name || '',
+    icon: entry.icon || null,
+    D1: entry.D1 || '', D2: entry.D2 || '', D3: entry.D3 || '', D4: entry.D4 || '',
+    S1: entry.S1 || '', S2: entry.S2 || '',
+    A1: entry.A1 || '', A2: entry.A2 || '', A3: entry.A3 || '', A4: entry.A4 || '',
+    SP1: entry.SP1 || '', SP2: entry.SP2 || '',
+    date: entry.date || '',
+    memo: entry.memo || ''
+  };
 }
 
+function parseJapaneseDate(dateStr) {
+  if (!dateStr) return new Date(0);
+  const newMatch = dateStr.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/);
+  if (newMatch) {
+    const [, year, month, day, hour, minute] = newMatch;
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
+  }
+  const oldMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/);
+  if (oldMatch) {
+    const [, month, day, hour, minute] = oldMatch;
+    return new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
+  }
+  const parsed = new Date(dateStr);
+  return isNaN(parsed.getTime()) ? new Date(0) : parsed;
+}
+
+// 重複チェック（未選択・空文字は除外）
+function hasDuplicateInArray(arr) {
+  const validChars = arr.filter(char => char && char !== '未選択' && char.trim() !== '');
+  const seen = new Set();
+  for (const char of validChars) {
+    if (seen.has(char)) return true;
+    seen.add(char);
+  }
+  return false;
+}
+
+function hasDuplicateDefense(entry) {
+  const chars = [entry.D1, entry.D2, entry.D3, entry.D4, entry.S1, entry.S2];
+  return hasDuplicateInArray(chars);
+}
+
+function hasDuplicateAttack(entry) {
+  const chars = [entry.A1, entry.A2, entry.A3, entry.A4, entry.SP1, entry.SP2];
+  return hasDuplicateInArray(chars);
+}
+
+// ========================================
+// ストレージ関数
+// ========================================
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(teamData));
+}
+
+function loadData() {
+  const data = localStorage.getItem(STORAGE_KEY);
+  if (data) {
+    const parsed = JSON.parse(data);
+    teamData = parsed.map(migrateEntry);
+  }
+}
 
 function saveHistory() {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(historyMap));
@@ -72,14 +123,69 @@ function loadHistory() {
   if (raw) historyMap = JSON.parse(raw);
 }
 
+function saveToHistory(name, oldEntry) {
+  if (!historyMap[name]) historyMap[name] = [];
+  historyMap[name].unshift(oldEntry);
+  saveHistory();
+}
+
+function loadFreq() {
+  const stored = localStorage.getItem(FREQ_KEY);
+  if (stored) usageFreq = JSON.parse(stored);
+}
+
+function saveFreq() {
+  localStorage.setItem(FREQ_KEY, JSON.stringify(usageFreq));
+}
+
+function increaseUsage(...names) {
+  names.forEach(name => {
+    if (!name) return;
+    if (!usageFreq[name]) usageFreq[name] = 0;
+    usageFreq[name]++;
+  });
+  saveFreq();
+}
+
+function saveViewState() {
+  localStorage.setItem(VIEW_STATE_KEY, JSON.stringify(viewState));
+}
+
+function loadViewState() {
+  const stored = localStorage.getItem(VIEW_STATE_KEY);
+  if (stored) {
+    viewState = JSON.parse(stored);
+  }
+}
+
+// ========================================
+// フォーム表示/非表示
+// ========================================
+
+function showForm() {
+  document.getElementById('formContent').classList.remove('hidden');
+  document.getElementById('newEntryBtn').style.display = 'none';
+}
+
+function hideForm() {
+  document.getElementById('formContent').classList.add('hidden');
+  document.getElementById('newEntryBtn').style.display = 'inline-flex';
+  document.getElementById('teamForm').classList.remove('editing');
+  editIndex = null;
+}
+
+// ========================================
+// ドロップダウン
+// ========================================
 
 function createDropdown(targetId, characters, onSelect) {
   const wrapper = document.getElementById(`dropdown-${targetId}`);
+  if (!wrapper) return;
   wrapper.innerHTML = '';
 
   const selected = document.createElement('div');
   selected.className = 'dropdown-select';
-  selected.textContent = '選択してください';
+  selected.innerHTML = '<span class="placeholder-text">未選択</span>';
   wrapper.appendChild(selected);
 
   const options = document.createElement('div');
@@ -90,7 +196,7 @@ function createDropdown(targetId, characters, onSelect) {
     opt.className = 'option';
     opt.innerHTML = `<img src="${char.image}" alt="${char.name}"><span>${char.name}</span>`;
     opt.addEventListener('click', () => {
-      selected.innerHTML = `<img src="${char.image}" alt="${char.name}"><span>${char.name}</span>`;
+      selected.innerHTML = `<img src="${char.image}" alt="${char.name}">`;
       selected.dataset.value = char.name;
       options.style.display = 'none';
       onSelect(char.name);
@@ -100,184 +206,260 @@ function createDropdown(targetId, characters, onSelect) {
 
   wrapper.appendChild(options);
 
-  selected.addEventListener('click', () => {
+  selected.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.dropdown-options').forEach(opt => {
+      if (opt !== options) opt.style.display = 'none';
+    });
     options.style.display = options.style.display === 'block' ? 'none' : 'block';
   });
-
-  document.addEventListener('click', e => {
-    if (!wrapper.contains(e.target)) {
-      options.style.display = 'none';
-    }
-  });
 }
 
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.dropdown-wrapper')) {
+    document.querySelectorAll('.dropdown-options').forEach(opt => {
+      opt.style.display = 'none';
+    });
+  }
+});
 
-// データ保存
-function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(teamData));
-}
-
-// データ読込
-function loadData() {
-  const data = localStorage.getItem(STORAGE_KEY);
-  if (data) {
-    teamData = JSON.parse(data);
+function setDropdown(id, name) {
+  const wrapper = document.getElementById(`dropdown-${id}`);
+  if (!wrapper) return;
+  const selected = wrapper.querySelector('.dropdown-select');
+  if (!selected) return;
+  const allData = [...stCharacterData, ...spCharacterData];
+  const match = allData.find(c => c.name === name);
+  if (match) {
+    selected.innerHTML = `<img src="${match.image}" alt="${match.name}">`;
+    selected.dataset.value = match.name;
+  } else {
+    selected.innerHTML = '<span class="placeholder-text">未選択</span>';
+    selected.dataset.value = '';
   }
 }
 
-// 表描画
+function getValue(id) {
+  const wrapper = document.getElementById(`dropdown-${id}`);
+  if (!wrapper) return '';
+  const el = wrapper.querySelector('.dropdown-select');
+  return el && el.dataset.value ? el.dataset.value : '';
+}
+
+// ========================================
+// テーブル描画
+// ========================================
+
 function populateTable() {
   const tbody = document.querySelector('#teamTable tbody');
   tbody.innerHTML = '';
+  const allImages = { ...stImages, ...spImages };
+
+  // 攻め列の表示/非表示
+  const attackHeader = document.querySelector('.th-attack');
+  if (attackHeader) {
+    attackHeader.style.display = viewState.showAttack ? '' : 'none';
+  }
 
   teamData.forEach((entry, index) => {
     const row = document.createElement('tr');
-    if (hasDuplicateCharacters(entry)) {
+    row.className = 'data-row';
+    row.dataset.index = index;
+    
+    // 防衛・攻めそれぞれで重複チェック
+    const defDup = hasDuplicateDefense(entry);
+    const atkDup = hasDuplicateAttack(entry);
+    if (defDup || atkDup) {
       row.classList.add('warning');
     }
 
-    row.innerHTML = `
-  <td>${entry.name}</td>
-  <td>${renderCharacterCell(entry.D1)}</td>
-  <td>${renderCharacterCell(entry.D2)}</td>
-  <td>${renderCharacterCell(entry.D3)}</td>
-  <td>${renderCharacterCell(entry.D4)}</td>
-  <td>${renderCharacterCell(entry.S1)}</td>
-  <td>${renderCharacterCell(entry.S2)}</td>
-  <td>${entry.date}</td>
-  <td class="memo-cell">${entry.memo || ''}</td> <!-- ✅ 追加 -->
-   
-  <td>
-    <button onclick="editEntry(${index})">🔧編集</button>
-    <button onclick="deleteEntry(${index})">🗑️削除</button>
-    <button class="history-btn" data-name="${entry.name}">📜履歴</button>
-    <button class="inventory-btn" data-name="${entry.name}">🗃️手持ち</button>
-    <button class="share-btn" data-index="${index}">🐦共有</button>
-  </td>
-`;
+    const userIcon = entry.icon && allImages[entry.icon] 
+      ? `<img src="${allImages[entry.icon]}" alt="${entry.icon}" title="${entry.icon}">`
+      : '';
+    
+    const defenseChars = [entry.D1, entry.D2, entry.D3, entry.D4, entry.S1, entry.S2]
+      .filter(Boolean)
+      .map(ch => `<img src="${allImages[ch] || ''}" alt="${ch}" title="${ch}">`)
+      .join('');
+    
+    const attackChars = [entry.A1, entry.A2, entry.A3, entry.A4, entry.SP1, entry.SP2]
+      .filter(Boolean)
+      .map(ch => `<img src="${allImages[ch] || ''}" alt="${ch}" title="${ch}">`)
+      .join('');
 
+    const hasMemo = entry.memo && entry.memo.trim();
+
+    row.innerHTML = `
+      <td>
+        <div class="user-cell">
+          ${userIcon}
+          <span>${entry.name}</span>
+        </div>
+      </td>
+      <td><div class="char-cell defense-cell">${defenseChars || '<span style="color: var(--text-muted);">-</span>'}</div></td>
+      <td class="attack-col" style="display: ${viewState.showAttack ? '' : 'none'}"><div class="char-cell attack-cell">${attackChars || '<span style="color: var(--text-muted);">-</span>'}</div></td>
+      <td class="date-cell">${entry.date}</td>
+      <td>
+        <div class="actions-cell">
+          <button class="action-btn edit-btn" data-index="${index}">🔧編集</button>
+          <button class="action-btn delete-btn" data-index="${index}">🗑️削除</button>
+          <button class="action-btn history-btn" data-name="${entry.name}" data-index="${index}">📜履歴</button>
+          <button class="action-btn inventory-btn" data-name="${entry.name}" data-index="${index}">🗃️所持</button>
+          <button class="action-btn share-btn" data-index="${index}">🐦共有</button>
+        </div>
+      </td>
+    `;
 
     tbody.appendChild(row);
-    // ✅ 追加（この位置が正解）
-row.addEventListener('click', () => {
-  document.querySelectorAll('#teamTable tbody tr').forEach(r => r.classList.remove('selected'));
-  row.classList.add('selected');
-});
-  row.querySelector('.history-btn').addEventListener('click', () => {
-  const name = entry.name;
-  const existing = tbody.querySelector(`.history-${name}`);
-  if (existing) {
-    existing.remove(); // 折りたたみ
-    return;
-  }
 
-  const history = (historyMap[name] || []).slice(0, 20); // 最新20件だけ表示
-  if (history.length === 0) return;
+    // メモ行（折りたたみ可能）
+    if (hasMemo) {
+      const memoRow = document.createElement('tr');
+      memoRow.className = 'collapsible-row memo-row';
+      memoRow.dataset.memoFor = index;
+      memoRow.style.display = viewState.showMemo ? '' : 'none';
+      
+      const colSpan = viewState.showAttack ? 5 : 4;
+      memoRow.innerHTML = `
+        <td colspan="${colSpan}">
+          <div class="collapsible-content">
+            <div class="collapsible-section">
+              <div class="collapsible-label">📝 メモ</div>
+              <div class="memo-content">${entry.memo}</div>
+            </div>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(memoRow);
+    }
 
-  const allImages = { ...stImages, ...spImages };
+    // 行クリックで選択
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      document.querySelectorAll('#teamTable tbody tr.data-row').forEach(r => r.classList.remove('selected'));
+      row.classList.add('selected');
+    });
 
-  const historyRow = document.createElement('tr');
-  historyRow.className = `history-row history-${name}`;
-  historyRow.innerHTML = `<td colspan="8">
-    <div class="history-container">
-      ${history.map((e, i) => `
-        <div class="history-entry">
-          <strong>${e.date}</strong>：
-          ${[e.D1, e.D2, e.D3, e.D4].filter(Boolean).map(ch => `
-            <img src="${allImages[ch] || ''}" alt="${ch}" class="history-icon" title="${ch}">
-          `).join('')}
-          <span style="margin: 0 8px;"></span>
-          ${[e.S1, e.S2].filter(Boolean).map(ch => `
-            <img src="${allImages[ch] || ''}" alt="${ch}" class="history-icon" title="${ch}">
-          `).join('')}
-          <button class="delete-history-btn" data-index="${i}">❌</button>
-        </div>
-      `).join('')}
-    </div>
-  </td>`;
-  row.after(historyRow);
+    // 編集ボタン
+    row.querySelector('.edit-btn').addEventListener('click', () => {
+      editEntry(index);
+    });
 
-  historyRow.querySelectorAll('.delete-history-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const i = parseInt(btn.dataset.index);
-    Swal.fire({
-      title: '履歴削除の確認',
-      text: `この履歴（${history[i].date}）を削除しますか？`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: '削除',
-      cancelButtonText: 'キャンセル',
-    }).then(result => {
-      if (result.isConfirmed) {
-        historyMap[name].splice(i, 1);
-        saveHistory();
-        populateTable(); // 表を更新
+    // 削除ボタン
+    row.querySelector('.delete-btn').addEventListener('click', () => {
+      deleteEntry(index);
+    });
 
+    // 履歴ボタン
+    row.querySelector('.history-btn').addEventListener('click', () => {
+      const name = entry.name;
+      const existing = tbody.querySelector(`.history-row[data-history-for="${index}"]`);
+      if (existing) { existing.remove(); return; }
+
+      const history = (historyMap[name] || []).slice(0, 20);
+      if (history.length === 0) {
+        Swal.fire('履歴なし', 'この相手の履歴はありません', 'info');
+        return;
       }
+
+      const historyRow = document.createElement('tr');
+      historyRow.className = 'history-row';
+      historyRow.dataset.historyFor = index;
+      const colSpan = viewState.showAttack ? 5 : 4;
+      historyRow.innerHTML = `<td colspan="${colSpan}">
+        <div class="history-container">
+          ${history.map((e, i) => `
+            <div class="history-entry">
+              <strong>${e.date}</strong>
+              ${[e.D1, e.D2, e.D3, e.D4].filter(Boolean).map(ch => `
+                <img src="${allImages[ch] || ''}" alt="${ch}" class="history-icon" title="${ch}">
+              `).join('')}
+              <span style="margin: 0 8px; color: var(--text-muted);">|</span>
+              ${[e.S1, e.S2].filter(Boolean).map(ch => `
+                <img src="${allImages[ch] || ''}" alt="${ch}" class="history-icon" title="${ch}">
+              `).join('')}
+              <button class="delete-history-btn" data-hindex="${i}">❌</button>
+            </div>
+          `).join('')}
+        </div>
+      </td>`;
+      
+      const memoRow = tbody.querySelector(`tr[data-memo-for="${index}"]`);
+      if (memoRow) { memoRow.after(historyRow); } else { row.after(historyRow); }
+
+      historyRow.querySelectorAll('.delete-history-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const i = parseInt(btn.dataset.hindex);
+          Swal.fire({
+            title: '履歴削除の確認',
+            text: `この履歴（${history[i].date}）を削除しますか？`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: '削除',
+            cancelButtonText: 'キャンセル',
+          }).then(result => {
+            if (result.isConfirmed) {
+              historyMap[name].splice(i, 1);
+              saveHistory();
+              populateTable();
+            }
+          });
+        });
+      });
     });
-  });
-});
 
+    // 所持ボタン
+    row.querySelector('.inventory-btn').addEventListener('click', () => {
+      const name = entry.name;
+      const existing = tbody.querySelector(`.inventory-row[data-inventory-for="${index}"]`);
+      if (existing) { existing.remove(); return; }
 
-});
-row.querySelector('.inventory-btn').addEventListener('click', () => {
-  const name = entry.name;
-  const existing = tbody.querySelector(`.inventory-${name}`);
-  if (existing) {
-    existing.remove(); // 折りたたみ
-    return;
-  }
+      const history = historyMap[name] || [];
+      if (history.length === 0) {
+        Swal.fire('データなし', 'この相手の履歴データがないため所持キャラを表示できません', 'info');
+        return;
+      }
 
-  const history = historyMap[name] || [];
-  if (history.length === 0) return;
+      const allChars = new Set();
+      history.forEach(h => {
+        [h.D1, h.D2, h.D3, h.D4, h.S1, h.S2, h.A1, h.A2, h.A3, h.A4, h.SP1, h.SP2].forEach(c => {
+          if (c && c !== '未選択') allChars.add(c);
+        });
+      });
 
-  const allImages = { ...stImages, ...spImages };
-
-  // キャラ名重複なしセット作成
-  const allChars = new Set();
-  history.forEach(h => {
-    [h.D1, h.D2, h.D3, h.D4, h.S1, h.S2].forEach(c => {
-      if (c && c !== '未選択') allChars.add(c);
+      const inventoryRow = document.createElement('tr');
+      inventoryRow.className = 'inventory-row';
+      inventoryRow.dataset.inventoryFor = index;
+      const colSpan = viewState.showAttack ? 5 : 4;
+      inventoryRow.innerHTML = `<td colspan="${colSpan}">
+        <div class="inventory-container">
+          ${[...allChars].map(c => `
+            <img src="${allImages[c] || ''}" alt="${c}" class="history-icon" title="${c}">
+          `).join('')}
+        </div>
+      </td>`;
+      
+      const memoRow = tbody.querySelector(`tr[data-memo-for="${index}"]`);
+      if (memoRow) { memoRow.after(inventoryRow); } else { row.after(inventoryRow); }
     });
-  });
 
-  const inventoryRow = document.createElement('tr');
-  inventoryRow.className = `inventory-row inventory-${name}`;
-  inventoryRow.innerHTML = `<td colspan="10">
-    <div class="inventory-container">
-      ${[...allChars].map(c => `
-        <img src="${allImages[c] || ''}" alt="${c}" class="history-icon" title="${c}">
-      `).join('')}
-    </div>
-  </td>`;
-  row.after(inventoryRow);
-});
-
-row.querySelector('.share-btn').addEventListener('click', () => {
-  const entry = teamData[index];
-  const characters = [entry.D1, entry.D2, entry.D3, entry.D4, entry.S1, entry.S2]
-    .filter(Boolean).join(' / ');
-  const tweet = `沼った防衛\n${characters}\n#ブルアカ #戦術対抗戦`;
-  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`;
-  window.open(url, '_blank');
-});
-
-
+    // 共有ボタン
+    row.querySelector('.share-btn').addEventListener('click', () => {
+      const e = teamData[index];
+      const defChars = [e.D1, e.D2, e.D3, e.D4, e.S1, e.S2].filter(Boolean).join(' / ');
+      const atkChars = [e.A1, e.A2, e.A3, e.A4, e.SP1, e.SP2].filter(Boolean).join(' / ');
+      let tweet = `【${e.name}】の編成\n🛡防衛: ${defChars}`;
+      if (atkChars) tweet += `\n⚔攻め: ${atkChars}`;
+      tweet += `\n#ブルアカ #戦術対抗戦`;
+      const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`;
+      window.open(url, '_blank');
+    });
   });
 }
 
-function renderCharacterCell(name) {
-  if (!name) return '';
-  const allImages = { ...stImages, ...spImages };
-  
-  // 🔽 未選択だったらnoimageにフォールバック
-  const imageUrl = allImages[name] || allImages["未選択"];
-  if (!imageUrl) return `<div>${name}</div>`;
-
-  return `<img src="${imageUrl}" alt="${name}" title="${name}"><div>${name}</div>`;
-}
-
-
+// ========================================
+// エントリ操作
+// ========================================
 
 function deleteEntry(index) {
   Swal.fire({
@@ -292,83 +474,124 @@ function deleteEntry(index) {
       teamData.splice(index, 1);
       saveData();
       populateTable();
-
       Swal.fire('削除されました', '', 'success');
     }
   });
 }
 
-
-
 function editEntry(index) {
   const entry = teamData[index];
+  
+  // フォームを表示
+  showForm();
+  
   document.getElementById('username').value = entry.name;
   editIndex = index;
 
-  setDropdown('D1', entry.D1);
-  setDropdown('D2', entry.D2);
-  setDropdown('D3', entry.D3);
-  setDropdown('D4', entry.D4);
-  setDropdown('S1', entry.S1);
-  setDropdown('S2', entry.S2);
+  if (entry.icon) setDropdown('userIcon', entry.icon);
+  setDropdown('D1', entry.D1); setDropdown('D2', entry.D2);
+  setDropdown('D3', entry.D3); setDropdown('D4', entry.D4);
+  setDropdown('S1', entry.S1); setDropdown('S2', entry.S2);
+  setDropdown('A1', entry.A1); setDropdown('A2', entry.A2);
+  setDropdown('A3', entry.A3); setDropdown('A4', entry.A4);
+  setDropdown('SP1', entry.SP1); setDropdown('SP2', entry.SP2);
 
   document.getElementById('memo').value = entry.memo || '';
   document.getElementById('teamForm').classList.add('editing');
-  document.getElementById('submitBtn').textContent = '更新';
-  document.getElementById('cancelBtn').style.display = 'inline-block';
-
-  // ✅ 追加：フォームへスクロール
+  document.getElementById('submitBtn').innerHTML = '<span class="btn-icon">✔</span> 更新';
+  document.getElementById('cancelBtn').innerHTML = '<span class="btn-icon">✖</span> 中止';
   document.getElementById('teamForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function resetForm() {
+  document.getElementById('username').value = '';
+  document.getElementById('memo').value = '';
+  document.getElementById('teamForm').classList.remove('editing');
+  document.getElementById('submitBtn').innerHTML = '<span class="btn-icon">➕</span> 追加';
+  document.getElementById('cancelBtn').innerHTML = '<span class="btn-icon">✖</span> 閉じる';
 
-
-function setDropdown(id, name) {
-  const selected = document.querySelector(`#dropdown-${id} .dropdown-select`);
-  const targetData = id.startsWith('S') ? spCharacterData : stCharacterData;
-  const match = targetData.find(c => c.name === name);
-  if (match) {
-    selected.innerHTML = `<img src="${match.image}" alt="${match.name}"><span>${match.name}</span>`;
-    selected.dataset.value = match.name;
-  }
+  const ids = ['userIcon', 'D1', 'D2', 'D3', 'D4', 'S1', 'S2', 'A1', 'A2', 'A3', 'A4', 'SP1', 'SP2'];
+  ids.forEach(id => {
+    const wrapper = document.getElementById(`dropdown-${id}`);
+    if (!wrapper) return;
+    const el = wrapper.querySelector('.dropdown-select');
+    if (el) { el.innerHTML = '<span class="placeholder-text">未選択</span>'; el.dataset.value = ''; }
+  });
+  
+  editIndex = null;
 }
 
-//ここかな？
+function finalizeForm() {
+  resetForm();
+  hideForm();
+  populateTable();
+  saveData();
+}
+
+// ========================================
+// ソート
+// ========================================
+
+function sortTableBy(key) {
+  if (currentSort.key === key) { currentSort.asc = !currentSort.asc; }
+  else { currentSort.key = key; currentSort.asc = true; }
+
+  teamData.sort((a, b) => {
+    let valA = a[key], valB = b[key];
+    if (key === 'date') { valA = parseJapaneseDate(valA); valB = parseJapaneseDate(valB); }
+    if (valA < valB) return currentSort.asc ? -1 : 1;
+    if (valA > valB) return currentSort.asc ? 1 : -1;
+    return 0;
+  });
+
+  document.querySelectorAll('th[data-sort]').forEach(th => {
+    th.classList.remove('sorted-asc', 'sorted-desc');
+    if (th.getAttribute('data-sort') === key) {
+      th.classList.add(currentSort.asc ? 'sorted-asc' : 'sorted-desc');
+    }
+  });
+  populateTable();
+}
+
+// ========================================
+// 表示トグル
+// ========================================
+
+function updateToggleButtons() {
+  document.getElementById('attackLabel').textContent = viewState.showAttack ? '攻めを非表示' : '攻めを表示';
+  document.getElementById('memoLabel').textContent = viewState.showMemo ? 'メモを非表示' : 'メモを表示';
+}
+
+// ========================================
+// イベントリスナー
+// ========================================
+
+document.getElementById('newEntryBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  resetForm();
+  showForm();
+});
+
 document.getElementById('submitBtn').addEventListener('click', e => {
   e.preventDefault();
-
   const name = document.getElementById('username').value.trim();
-  if (!name) {
-    console.warn("ユーザー名が未入力です！");
-    return;
-  }
+  if (!name) { Swal.fire('エラー', 'ユーザー名を入力してください', 'error'); return; }
 
-  const getValue = (id) => {
-    const el = document.querySelector(`#dropdown-${id} .dropdown-select`);
-    return el && el.dataset.value ? el.dataset.value : '';
-  };
-
-  const D1 = getValue('D1');
-  const D2 = getValue('D2');
-  const D3 = getValue('D3');
-  const D4 = getValue('D4');
-  const S1 = getValue('S1');
-  const S2 = getValue('S2');
-  
+  const icon = getValue('userIcon');
+  const D1 = getValue('D1'), D2 = getValue('D2'), D3 = getValue('D3'), D4 = getValue('D4');
+  const S1 = getValue('S1'), S2 = getValue('S2');
+  const A1 = getValue('A1'), A2 = getValue('A2'), A3 = getValue('A3'), A4 = getValue('A4');
+  const SP1 = getValue('SP1'), SP2 = getValue('SP2');
 
   const now = new Date();
   const today = now.toLocaleString('ja-JP', {
-  month: 'numeric',
-  day: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit'
-});
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+  });
 
   const memo = document.getElementById('memo').value.trim();
-  const entry = { name, D1, D2, D3, D4, S1, S2, date: today, memo };
+  const entry = { name, icon, D1, D2, D3, D4, S1, S2, A1, A2, A3, A4, SP1, SP2, date: today, memo };
   const existingIndex = teamData.findIndex(e => e.name === name);
 
-  // 🔧 entry定義後にチェック
   if (editIndex !== null) {
     saveToHistory(teamData[editIndex].name, { ...teamData[editIndex] });
     teamData[editIndex] = entry;
@@ -380,7 +603,7 @@ document.getElementById('submitBtn').addEventListener('click', e => {
   if (existingIndex !== -1) {
     Swal.fire({
       title: '上書き確認',
-      text: `同じ名前のデータ（${name}）があります。\n上書きしますか？`,
+      text: `同じ名前のデータ（${name}）があります。上書きしますか？`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: '上書きする',
@@ -389,7 +612,7 @@ document.getElementById('submitBtn').addEventListener('click', e => {
       if (result.isConfirmed) {
         saveToHistory(teamData[existingIndex].name, { ...teamData[existingIndex] });
         teamData[existingIndex] = entry;
-        increaseUsage(D1, D2, D3, D4, S1, S2);
+        increaseUsage(D1, D2, D3, D4, S1, S2, A1, A2, A3, A4, SP1, SP2);
         finalizeForm();
       }
     });
@@ -397,248 +620,61 @@ document.getElementById('submitBtn').addEventListener('click', e => {
   }
 
   teamData.push(entry);
-  increaseUsage(D1, D2, D3, D4, S1, S2);
+  increaseUsage(D1, D2, D3, D4, S1, S2, A1, A2, A3, A4, SP1, SP2);
   finalizeForm();
 });
 
-
-
-
-// 初期化
-let stCharacterData = [], spCharacterData = [];
-
-Promise.all([
-  fetch(stCharUrl).then(res => res.json()),
-  fetch(spCharUrl).then(res => res.json())
-]).then(([stData, spData]) => {
-  stData.forEach(c => {
-    stNames.push(c.name);
-    stImages[c.name] = c.image;
-  });
-  spData.forEach(c => {
-    spNames.push(c.name);
-    spImages[c.name] = c.image;
-  });
-
-  stCharacterData = stData;
-  spCharacterData = spData;
-
-  loadFreq(); // 使用頻度読み込み
-
-  const sortedSt = sortCharactersByPriority(stCharacterData, usageFreq, fixedTopCharacters);
-  const sortedSp = sortCharactersByPriority(spCharacterData, usageFreq, fixedTopCharactersSP);
-
-  // 🔽 この中で createDropdown 実行するように
-createDropdown('D1', sortedSt, () => {});
-createDropdown('D2', sortedSt, () => {});
-createDropdown('D3', sortedSt, () => {});
-createDropdown('D4', sortedSt, () => {});
-createDropdown('S1', sortedSp, () => {});
-createDropdown('S2', sortedSp, () => {});
-
-
-  loadData();
-  populateTable();
-
+document.getElementById('cancelBtn').addEventListener('click', () => {
+  resetForm();
+  hideForm();
 });
 
+document.querySelectorAll('th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => { sortTableBy(th.getAttribute('data-sort')); });
+});
 
-function populateDropdown(idList, names, fixedTopCharacters) {
-  const uniqueNames = [...new Set(names)];
+document.getElementById('toggleAttackBtn').addEventListener('click', () => {
+  viewState.showAttack = !viewState.showAttack;
+  saveViewState();
+  updateToggleButtons();
+  populateTable();
+});
 
-  // 固定キャラをフィルタして前に
-  const fixed = fixedTopCharacters.filter(name => uniqueNames.includes(name));
+document.getElementById('toggleMemoBtn').addEventListener('click', () => {
+  viewState.showMemo = !viewState.showMemo;
+  saveViewState();
+  updateToggleButtons();
+  populateTable();
+});
 
-  // 残りを頻度順にソート（固定キャラ除外）
-  const others = uniqueNames.filter(name => !fixed.includes(name));
-  const sortedOthers = others.sort((a, b) => {
-    const fa = usageFreq[a] || 0;
-    const fb = usageFreq[b] || 0;
-    return fb - fa;
-  });
-
-  const sortedNames = [...fixed, ...sortedOthers];
-
-  idList.forEach(id => {
-    const select = document.getElementById(id);
-    select.innerHTML = '';
-    sortedNames.forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = opt.textContent = name;
-      select.appendChild(opt);
-    });
-  });
-}
-
-
-// エクスポート機能
 document.getElementById('exportBtn').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify(teamData, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = 'tactical_teams.json';
-  a.click();
+  a.href = url; a.download = 'tactical_teams.json'; a.click();
   URL.revokeObjectURL(url);
 });
 
-// インポート機能
 document.getElementById('importFile').addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
-
   const reader = new FileReader();
   reader.onload = () => {
     try {
       const imported = JSON.parse(reader.result);
       if (Array.isArray(imported)) {
-        teamData = imported;
-        saveData();      // ローカルにも保存
-        populateTable(); // 表更新
-
-        alert('インポート成功！');
+        teamData = imported.map(migrateEntry);
+        saveData();
+        populateTable();
+        Swal.fire('成功', 'インポートが完了しました！', 'success');
       } else {
-        alert('無効なファイル形式です。');
+        Swal.fire('エラー', '無効なファイル形式です。', 'error');
       }
     } catch (err) {
-      alert('読み込みに失敗しました。');
+      Swal.fire('エラー', '読み込みに失敗しました。', 'error');
     }
   };
   reader.readAsText(file);
-});
-
-const FREQ_KEY = 'characterUsageFreq';
-let usageFreq = {};
-
-// 頻度読み込み
-function loadFreq() {
-  const stored = localStorage.getItem(FREQ_KEY);
-  if (stored) usageFreq = JSON.parse(stored);
-}
-
-// 頻度保存
-function saveFreq() {
-  localStorage.setItem(FREQ_KEY, JSON.stringify(usageFreq));
-}
-
-// 使用キャラの頻度アップ
-function increaseUsage(...names) {
-  names.forEach(name => {
-    if (!usageFreq[name]) usageFreq[name] = 0;
-    usageFreq[name]++;
-  });
-  saveFreq();
-}
-
-function hasDuplicateCharacters(entry) {
-  const chars = [entry.D1, entry.D2, entry.D3, entry.D4, entry.S1, entry.S2];
-  const seen = new Set();
-  return chars.some(char => {
-    if (!char || char === '未選択') return false; // ❗未選択をスキップ
-    if (seen.has(char)) return true;
-    seen.add(char);
-    return false;
-  });
-}
-
-
-
-function sortTableBy(key) {
-  // 昇降切り替え
-  if (currentSort.key === key) {
-    currentSort.asc = !currentSort.asc;
-  } else {
-    currentSort.key = key;
-    currentSort.asc = true;
-  }
-
-  // ソート実行
-  teamData.sort((a, b) => {
-    let valA = a[key];
-    let valB = b[key];
-    if (key === 'date') {
-      valA = new Date(valA);
-      valB = new Date(valB);
-    }
-    if (valA < valB) return currentSort.asc ? -1 : 1;
-    if (valA > valB) return currentSort.asc ? 1 : -1;
-    return 0;
-  });
-
-  // 🔧 見た目を更新（ソート記号）
-  document.querySelectorAll('th[data-sort]').forEach(th => {
-    th.classList.remove('sorted-asc', 'sorted-desc');
-    if (th.getAttribute('data-sort') === key) {
-      th.classList.add(currentSort.asc ? 'sorted-asc' : 'sorted-desc');
-    }
-  });
-
-  populateTable();
-
-}
-
-function finalizeForm() {
-  document.getElementById('username').value = '';
-  document.getElementById('memo').value = '';
-  document.getElementById('teamForm').classList.remove('editing');
-  document.getElementById('submitBtn').textContent = '追加';
-  document.getElementById('cancelBtn').style.display = 'none';
-
-  const ids = ['D1', 'D2', 'D3', 'D4', 'S1', 'S2'];
-  ids.forEach(id => {
-    const el = document.querySelector(`#dropdown-${id} .dropdown-select`);
-    el.innerHTML = '選択してください';
-    el.dataset.value = '';
-  });
-
-  populateTable();
-
-  saveData();
-}
-
-
-
-
-
-// ソートヘッダーにクリックイベントを追加
-document.querySelectorAll('th[data-sort]').forEach(th => {
-  th.addEventListener('click', () => {
-    const key = th.getAttribute('data-sort');
-    sortTableBy(key);
-  });
-});
-
-function toggleHistory(button, name) {
-  const row = button.closest('tr');
-  const nextRow = row.nextElementSibling;
-
-  if (nextRow && nextRow.classList.contains('history-row')) {
-    nextRow.remove(); // すでに表示 → 削除
-    return;
-  }
-
-  const entries = historyMap[name] || [];
-  const historyHtml = entries.map(e => `
-    <tr class="history-row">
-      <td colspan="9" style="background:#f7f7f7;">
-        <strong>${e.date} 登録時:</strong>
-        D1:${e.D1}, D2:${e.D2}, D3:${e.D3}, D4:${e.D4}, S1:${e.S1}, S2:${e.S2}
-      </td>
-    </tr>
-  `).join('');
-
-  row.insertAdjacentHTML('afterend', historyHtml);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  loadHistory();     // 🔁 まず履歴データ読み込み
-  loadData();        // ✅ チームデータ読み込み
-  populateTable();   // ✅ 表に反映
-});
-
-document.getElementById('cancelBtn').addEventListener('click', () => {
-  editIndex = null;
-  finalizeForm();
 });
 
 document.getElementById('pageShareBtn').addEventListener('click', () => {
@@ -647,3 +683,44 @@ document.getElementById('pageShareBtn').addEventListener('click', () => {
   window.open(url, '_blank');
 });
 
+// ========================================
+// 初期化
+// ========================================
+
+let stCharacterData = [], spCharacterData = [];
+
+Promise.all([
+  fetch(stCharUrl).then(res => res.json()),
+  fetch(spCharUrl).then(res => res.json())
+]).then(([stData, spData]) => {
+  stData.forEach(c => { stNames.push(c.name); stImages[c.name] = c.image; });
+  spData.forEach(c => { spNames.push(c.name); spImages[c.name] = c.image; });
+
+  stCharacterData = stData;
+  spCharacterData = spData;
+
+  loadFreq();
+
+  const sortedSt = sortCharactersByPriority(stCharacterData, usageFreq, fixedTopCharacters);
+  const sortedSp = sortCharactersByPriority(spCharacterData, usageFreq, fixedTopCharactersSP);
+  const allSorted = [...sortedSt, ...sortedSp];
+
+  createDropdown('userIcon', allSorted, () => {});
+  createDropdown('D1', sortedSt, () => {}); createDropdown('D2', sortedSt, () => {});
+  createDropdown('D3', sortedSt, () => {}); createDropdown('D4', sortedSt, () => {});
+  createDropdown('S1', sortedSp, () => {}); createDropdown('S2', sortedSp, () => {});
+  createDropdown('A1', sortedSt, () => {}); createDropdown('A2', sortedSt, () => {});
+  createDropdown('A3', sortedSt, () => {}); createDropdown('A4', sortedSt, () => {});
+  createDropdown('SP1', sortedSp, () => {}); createDropdown('SP2', sortedSp, () => {});
+
+  loadData();
+  populateTable();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadHistory();
+  loadViewState();
+  updateToggleButtons();
+  loadData();
+  populateTable();
+});
