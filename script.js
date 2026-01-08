@@ -158,6 +158,57 @@ function loadViewState() {
   }
 }
 
+// 攻め編成のバックアップ（元に戻す用）
+let attackBackup = null;
+
+// ========================================
+// 攻めクリア・元に戻す
+// ========================================
+
+function clearAttackSlots() {
+  // 現在の攻め編成をバックアップ
+  attackBackup = {
+    A1: getValue('A1'),
+    A2: getValue('A2'),
+    A3: getValue('A3'),
+    A4: getValue('A4'),
+    SP1: getValue('SP1'),
+    SP2: getValue('SP2')
+  };
+  
+  // 攻め枠をクリア
+  ['A1', 'A2', 'A3', 'A4', 'SP1', 'SP2'].forEach(id => {
+    const wrapper = document.getElementById(`dropdown-${id}`);
+    if (!wrapper) return;
+    const el = wrapper.querySelector('.dropdown-select');
+    if (el) {
+      el.innerHTML = '<span class="placeholder-text">未選択</span>';
+      el.dataset.value = '';
+    }
+  });
+  
+  // 元に戻すボタンを表示
+  document.getElementById('undoAttackBtn').style.display = 'inline-flex';
+}
+
+function undoAttackClear() {
+  if (!attackBackup) return;
+  
+  // バックアップから復元
+  if (attackBackup.A1) setDropdown('A1', attackBackup.A1);
+  if (attackBackup.A2) setDropdown('A2', attackBackup.A2);
+  if (attackBackup.A3) setDropdown('A3', attackBackup.A3);
+  if (attackBackup.A4) setDropdown('A4', attackBackup.A4);
+  if (attackBackup.SP1) setDropdown('SP1', attackBackup.SP1);
+  if (attackBackup.SP2) setDropdown('SP2', attackBackup.SP2);
+  
+  // バックアップをクリア
+  attackBackup = null;
+  
+  // 元に戻すボタンを非表示
+  document.getElementById('undoAttackBtn').style.display = 'none';
+}
+
 // ========================================
 // フォーム表示/非表示
 // ========================================
@@ -191,27 +242,71 @@ function createDropdown(targetId, characters, onSelect) {
   const options = document.createElement('div');
   options.className = 'dropdown-options';
 
+  // 検索入力欄
+  const searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.className = 'dropdown-search';
+  searchInput.placeholder = '名前で検索...';
+  options.appendChild(searchInput);
+
+  // オプションコンテナ
+  const optionsContainer = document.createElement('div');
+  optionsContainer.className = 'dropdown-options-list';
+  
   characters.forEach(char => {
     const opt = document.createElement('div');
     opt.className = 'option';
+    opt.dataset.name = char.name.toLowerCase();
     opt.innerHTML = `<img src="${char.image}" alt="${char.name}"><span>${char.name}</span>`;
     opt.addEventListener('click', () => {
       selected.innerHTML = `<img src="${char.image}" alt="${char.name}">`;
       selected.dataset.value = char.name;
       options.style.display = 'none';
+      searchInput.value = '';
+      filterOptions('');
       onSelect(char.name);
     });
-    options.appendChild(opt);
+    optionsContainer.appendChild(opt);
   });
 
+  options.appendChild(optionsContainer);
   wrapper.appendChild(options);
+
+  // フィルタリング関数
+  function filterOptions(query) {
+    const lowerQuery = query.toLowerCase();
+    optionsContainer.querySelectorAll('.option').forEach(opt => {
+      const name = opt.dataset.name;
+      if (name.includes(lowerQuery)) {
+        opt.style.display = 'flex';
+      } else {
+        opt.style.display = 'none';
+      }
+    });
+  }
+
+  // 検索入力イベント
+  searchInput.addEventListener('input', (e) => {
+    filterOptions(e.target.value);
+  });
+
+  // 検索欄クリック時にドロップダウンが閉じないように
+  searchInput.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
 
   selected.addEventListener('click', (e) => {
     e.stopPropagation();
     document.querySelectorAll('.dropdown-options').forEach(opt => {
       if (opt !== options) opt.style.display = 'none';
     });
-    options.style.display = options.style.display === 'block' ? 'none' : 'block';
+    const isOpening = options.style.display !== 'block';
+    options.style.display = isOpening ? 'block' : 'none';
+    if (isOpening) {
+      searchInput.value = '';
+      filterOptions('');
+      setTimeout(() => searchInput.focus(), 10);
+    }
   });
 }
 
@@ -518,6 +613,10 @@ function resetForm() {
     if (el) { el.innerHTML = '<span class="placeholder-text">未選択</span>'; el.dataset.value = ''; }
   });
   
+  // 攻めバックアップをクリアし、元に戻すボタンを非表示
+  attackBackup = null;
+  document.getElementById('undoAttackBtn').style.display = 'none';
+  
   editIndex = null;
 }
 
@@ -570,6 +669,16 @@ document.getElementById('newEntryBtn').addEventListener('click', (e) => {
   e.stopPropagation();
   resetForm();
   showForm();
+});
+
+document.getElementById('clearAttackBtn').addEventListener('click', (e) => {
+  e.preventDefault();
+  clearAttackSlots();
+});
+
+document.getElementById('undoAttackBtn').addEventListener('click', (e) => {
+  e.preventDefault();
+  undoAttackClear();
 });
 
 document.getElementById('submitBtn').addEventListener('click', e => {
