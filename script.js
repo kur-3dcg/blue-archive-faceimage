@@ -57,7 +57,8 @@ function migrateEntry(entry) {
     A1: entry.A1 || '', A2: entry.A2 || '', A3: entry.A3 || '', A4: entry.A4 || '',
     SP1: entry.SP1 || '', SP2: entry.SP2 || '',
     date: entry.date || '',
-    memo: entry.memo || ''
+    memo: entry.memo || '',
+    favorite: entry.favorite || false
   };
 }
 
@@ -210,6 +211,16 @@ function undoAttackClear() {
 }
 
 // ========================================
+// お気に入り機能
+// ========================================
+
+function toggleFavorite(index) {
+  teamData[index].favorite = !teamData[index].favorite;
+  saveData();
+  populateTable();
+}
+
+// ========================================
 // フォーム表示/非表示
 // ========================================
 
@@ -347,19 +358,32 @@ function getValue(id) {
 
 function populateTable() {
   const tbody = document.querySelector('#teamTable tbody');
+  const table = document.getElementById('teamTable');
   tbody.innerHTML = '';
   const allImages = { ...stImages, ...spImages };
 
-  // 攻め列の表示/非表示
+  // 攻め列の表示/非表示とクラス切り替え
   const attackHeader = document.querySelector('.th-attack');
   if (attackHeader) {
     attackHeader.style.display = viewState.showAttack ? '' : 'none';
+  }
+  
+  // 攻め非表示時はテーブルにクラスを追加（防衛画像を大きくするため）
+  if (viewState.showAttack) {
+    table.classList.remove('attack-hidden');
+  } else {
+    table.classList.add('attack-hidden');
   }
 
   teamData.forEach((entry, index) => {
     const row = document.createElement('tr');
     row.className = 'data-row';
     row.dataset.index = index;
+    
+    // お気に入りクラス
+    if (entry.favorite) {
+      row.classList.add('favorite');
+    }
     
     // 防衛・攻めそれぞれで重複チェック
     const defDup = hasDuplicateDefense(entry);
@@ -371,6 +395,18 @@ function populateTable() {
     const userIcon = entry.icon && allImages[entry.icon] 
       ? `<img src="${allImages[entry.icon]}" alt="${entry.icon}" title="${entry.icon}">`
       : '';
+    
+    // 名前を10文字に制限し、長さに応じてフォントサイズを調整
+    let displayName = entry.name;
+    if (displayName.length > 10) {
+      displayName = displayName.substring(0, 10);
+    }
+    let nameFontSize = '0.95rem';
+    if (displayName.length > 8) {
+      nameFontSize = '0.8rem';
+    } else if (displayName.length > 6) {
+      nameFontSize = '0.85rem';
+    }
     
     const defenseChars = [entry.D1, entry.D2, entry.D3, entry.D4, entry.S1, entry.S2]
       .filter(Boolean)
@@ -388,14 +424,15 @@ function populateTable() {
       <td>
         <div class="user-cell">
           ${userIcon}
-          <span>${entry.name}</span>
+          <span style="font-size: ${nameFontSize};" title="${entry.name}">${displayName}</span>
         </div>
       </td>
       <td><div class="char-cell defense-cell">${defenseChars || '<span style="color: var(--text-muted);">-</span>'}</div></td>
       <td class="attack-col" style="display: ${viewState.showAttack ? '' : 'none'}"><div class="char-cell attack-cell">${attackChars || '<span style="color: var(--text-muted);">-</span>'}</div></td>
       <td class="date-cell">${entry.date}</td>
       <td>
-        <div class="actions-cell">
+        <div class="actions-cell ${viewState.showAttack ? 'two-rows' : ''}">
+          <button class="action-btn favorite-btn ${entry.favorite ? 'active' : ''}" data-index="${index}">⭐Fav</button>
           <button class="action-btn edit-btn" data-index="${index}">🔧編集</button>
           <button class="action-btn delete-btn" data-index="${index}">🗑️削除</button>
           <button class="action-btn history-btn" data-name="${entry.name}" data-index="${index}">📜履歴</button>
@@ -433,6 +470,11 @@ function populateTable() {
       if (e.target.closest('button')) return;
       document.querySelectorAll('#teamTable tbody tr.data-row').forEach(r => r.classList.remove('selected'));
       row.classList.add('selected');
+    });
+
+    // お気に入りボタン
+    row.querySelector('.favorite-btn').addEventListener('click', () => {
+      toggleFavorite(index);
     });
 
     // 編集ボタン
@@ -636,6 +678,10 @@ function sortTableBy(key) {
   else { currentSort.key = key; currentSort.asc = true; }
 
   teamData.sort((a, b) => {
+    // お気に入りを常に上に
+    if (a.favorite && !b.favorite) return -1;
+    if (!a.favorite && b.favorite) return 1;
+    
     let valA = a[key], valB = b[key];
     if (key === 'date') { valA = parseJapaneseDate(valA); valB = parseJapaneseDate(valB); }
     if (valA < valB) return currentSort.asc ? -1 : 1;

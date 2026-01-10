@@ -603,8 +603,17 @@ body {
   transition: all 0.3s ease;
 }
 
+#teamTable tbody tr.data-row.favorite {
+  background: linear-gradient(90deg, #fef9e7 0%, var(--bg-white) 100%);
+  box-shadow: inset 3px 0 0 #f59e0b, var(--shadow-sm);
+}
+
 #teamTable tbody tr.data-row:hover {
   box-shadow: var(--shadow-md);
+}
+
+#teamTable tbody tr.data-row.favorite:hover {
+  box-shadow: inset 3px 0 0 #f59e0b, var(--shadow-md);
 }
 
 #teamTable tbody tr.selected {
@@ -639,11 +648,15 @@ body {
   gap: 10px;
   justify-content: flex-start;
   padding-left: 10px;
+  flex-wrap: nowrap;
 }
 
 .user-cell img {
-  width: 38px;
-  height: 38px;
+  width: 50px;
+  height: 50px;
+  min-width: 28px;
+  min-height: 28px;
+  flex-shrink: 1;
   object-fit: cover;
   border-radius: 8px;
   border: 2px solid var(--border-color);
@@ -653,19 +666,32 @@ body {
   font-weight: 700;
   color: var(--text-primary);
   font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 10em;
+}
+
+/* 防衛のみ表示時は先生アイコンも大きく */
+.attack-hidden .user-cell img {
+  width: 60px;
+  height: 60px;
 }
 
 /* Character cells */
 .char-cell {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .char-cell img {
-  width: 54px;
-  height: 54px;
+  width: 50px;
+  height: 50px;
+  min-width: 28px;
+  min-height: 28px;
+  flex-shrink: 1;
   object-fit: cover;
   border-radius: 8px;
   border: 2px solid var(--border-color);
@@ -688,6 +714,12 @@ body {
   background: var(--attack-bg);
 }
 
+/* 防衛のみ表示時は画像を大きく */
+.attack-hidden .char-cell.defense-cell img {
+  width: 60px;
+  height: 60px;
+}
+
 /* Date cell */
 .date-cell {
   font-size: 0.8rem;
@@ -701,6 +733,12 @@ body {
   gap: 4px;
   justify-content: center;
   flex-wrap: wrap;
+}
+
+/* 攻め表示時は2行レイアウト */
+.actions-cell.two-rows {
+  max-width: 200px;
+  margin: 0 auto;
 }
 
 .action-btn {
@@ -722,6 +760,17 @@ body {
   background: var(--bg-white);
   border-color: var(--primary-blue);
   box-shadow: var(--shadow-sm);
+}
+
+.action-btn.favorite-btn:hover {
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.action-btn.favorite-btn.active {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #d97706;
 }
 
 .action-btn.edit-btn:hover {
@@ -958,8 +1007,30 @@ body {
   }
   
   .char-cell img {
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
+    min-width: 24px;
+    min-height: 24px;
+  }
+  
+  .attack-hidden .char-cell.defense-cell img {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .user-cell img {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .attack-hidden .user-cell img {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .user-cell span {
+    font-size: 0.85rem;
+    max-width: 8em;
   }
   
   .action-btn {
