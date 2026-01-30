@@ -133,7 +133,46 @@
       <button id="toggleMemoBtn" class="btn btn-tool">
         <span class="btn-icon">📝</span> <span id="memoLabel">メモを表示</span>
       </button>
+      <button id="prioritySettingsBtn" class="btn btn-tool">
+        <span class="btn-icon">⭐</span> 優先生徒設定
+      </button>
     </section>
+
+    <!-- 優先生徒設定モーダル -->
+    <div id="priorityModal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>⭐ 優先表示生徒の設定</h3>
+          <button class="modal-close-btn" id="closePriorityModal">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-description">ドロップダウンの上部に表示する生徒を設定できます。ドラッグ&ドロップで順番を変更できます。</p>
+          
+          <div class="priority-section">
+            <h4 class="priority-section-title defense-label">🛡 STRIKER 優先生徒</h4>
+            <div class="priority-selected" id="priorityStrikerSelected"></div>
+            <div class="priority-add-wrapper">
+              <div class="dropdown-wrapper priority-dropdown" id="dropdown-addStriker"></div>
+              <button type="button" class="btn btn-small btn-add-priority" id="addStrikerBtn">追加</button>
+            </div>
+          </div>
+          
+          <div class="priority-section">
+            <h4 class="priority-section-title attack-label">💫 SPECIAL 優先生徒</h4>
+            <div class="priority-selected" id="prioritySpecialSelected"></div>
+            <div class="priority-add-wrapper">
+              <div class="dropdown-wrapper priority-dropdown" id="dropdown-addSpecial"></div>
+              <button type="button" class="btn btn-small btn-add-priority" id="addSpecialBtn">追加</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="resetPriorityBtn" class="btn btn-secondary">デフォルトに戻す</button>
+          <button id="savePriorityBtn" class="btn btn-primary">保存して閉じる</button>
+        </div>
+      </div>
+    </div>
 
     <section class="table-section">
       <div class="section-header">

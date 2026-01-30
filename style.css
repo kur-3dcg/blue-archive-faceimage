@@ -1047,3 +1047,287 @@ body {
     font-size: 0.75rem;
   }
 }
+
+/* ========================================
+   PRIORITY SETTINGS MODAL
+   ======================================== */
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  position: relative;
+  background: var(--bg-white);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-input);
+}
+
+.modal-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary-blue-dark);
+  margin: 0;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background: var(--border-light);
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-description {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  padding: 10px 12px;
+  background: var(--bg-input);
+  border-radius: 8px;
+  border-left: 3px solid var(--primary-blue);
+}
+
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-input);
+}
+
+.priority-section {
+  margin-bottom: 24px;
+}
+
+.priority-section:last-child {
+  margin-bottom: 0;
+}
+
+.priority-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.priority-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 60px;
+  padding: 12px;
+  background: var(--bg-input);
+  border: 2px dashed var(--border-color);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  align-content: flex-start;
+}
+
+.priority-selected:empty::before {
+  content: '下のドロップダウンから生徒を追加してください';
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: center;
+}
+
+.priority-char {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: grab;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.priority-char:active {
+  cursor: grabbing;
+}
+
+.priority-char.dragging {
+  opacity: 0.5;
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
+}
+
+.priority-char.drag-over {
+  border-color: var(--primary-blue);
+  background: var(--defense-bg);
+}
+
+.priority-char img {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: 2px solid var(--border-color);
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.priority-char span {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.priority-char .remove-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  margin-left: auto;
+  transition: all 0.2s ease;
+}
+
+.priority-char .remove-btn:hover {
+  background: var(--attack-bg);
+  color: var(--danger);
+}
+
+.priority-char:hover {
+  border-color: var(--primary-blue-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.priority-add-wrapper {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.priority-dropdown {
+  flex: 1;
+  width: auto;
+}
+
+.priority-dropdown .dropdown-select {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 10px;
+}
+
+.priority-dropdown .dropdown-select img {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.priority-dropdown .dropdown-select .selected-name {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.priority-dropdown .dropdown-options {
+  width: 100%;
+}
+
+.btn-add-priority {
+  padding: 12px 20px;
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  flex-shrink: 0;
+}
+
+.btn-add-priority:hover {
+  background: var(--primary-blue-dark);
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;
+  }
+  
+  .modal-body {
+    padding: 16px;
+  }
+  
+  .priority-char img {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .priority-char span {
+    font-size: 0.75rem;
+  }
+  
+  .priority-add-wrapper {
+    flex-direction: column;
+  }
+  
+  .priority-dropdown {
+    width: 100%;
+  }
+  
+  .btn-add-priority {
+    width: 100%;
+  }
+}

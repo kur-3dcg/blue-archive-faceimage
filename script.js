@@ -8,6 +8,8 @@ const STORAGE_KEY = 'tacticalTeamData';
 const HISTORY_KEY = 'tacticalHistoryData';
 const FREQ_KEY = 'characterUsageFreq';
 const VIEW_STATE_KEY = 'tacticalViewState';
+const PRIORITY_ST_KEY = 'priorityStrikerCharacters';
+const PRIORITY_SP_KEY = 'prioritySpecialCharacters';
 
 let teamData = [];
 let editIndex = null;
@@ -21,16 +23,24 @@ let viewState = {
   showMemo: false
 };
 
-const fixedTopCharacters = [
+// ユーザー設定の優先生徒（localStorageから復元）
+let userPriorityStriker = [];
+let userPrioritySpecial = [];
+
+const defaultTopCharacters = [
   'ハナコ（水着）', 'シュン', 'ツルギ', 'ホシノ（臨戦）', 'ホシノ（攻撃）',
   'ホシノ（防御）', 'ミヤコ', 'ユウカ', 'マリナ', 'ツバキ', 'エイミ',
   'アツコ', 'ネル（バニーガール）', 'カノエ'
 ];
 
-const fixedTopCharactersSP = [
+const defaultTopCharactersSP = [
   'アツコ（水着）', 'ヒビキ', 'サキ', 'レイサ（マジカル）',
   'シロコ（水着）', 'ヤクモ', 'ミチル（ドレス）'
 ];
+
+// 実際に使用する優先生徒（ユーザー設定 or デフォルト）
+let fixedTopCharacters = [...defaultTopCharacters];
+let fixedTopCharactersSP = [...defaultTopCharactersSP];
 
 // ========================================
 // ユーティリティ関数
@@ -38,10 +48,20 @@ const fixedTopCharactersSP = [
 
 function sortCharactersByPriority(characters, usageMap, fixedTop = []) {
   return [...characters].sort((a, b) => {
-    const aFixed = fixedTop.includes(a.name);
-    const bFixed = fixedTop.includes(b.name);
+    const aFixedIndex = fixedTop.indexOf(a.name);
+    const bFixedIndex = fixedTop.indexOf(b.name);
+    const aFixed = aFixedIndex !== -1;
+    const bFixed = bFixedIndex !== -1;
+    
+    // 両方とも優先リストにある場合は、リスト内の順番で並べる
+    if (aFixed && bFixed) {
+      return aFixedIndex - bFixedIndex;
+    }
+    // 片方だけ優先リストにある場合は、そちらを上に
     if (aFixed && !bFixed) return -1;
     if (!aFixed && bFixed) return 1;
+    
+    // どちらも優先リストにない場合は、使用頻度順
     const aCount = usageMap[a.name] || 0;
     const bCount = usageMap[b.name] || 0;
     return bCount - aCount;
@@ -157,6 +177,43 @@ function loadViewState() {
   if (stored) {
     viewState = JSON.parse(stored);
   }
+}
+
+// ========================================
+// 優先生徒設定
+// ========================================
+
+function savePriorityCharacters() {
+  localStorage.setItem(PRIORITY_ST_KEY, JSON.stringify(userPriorityStriker));
+  localStorage.setItem(PRIORITY_SP_KEY, JSON.stringify(userPrioritySpecial));
+}
+
+function loadPriorityCharacters() {
+  const storedSt = localStorage.getItem(PRIORITY_ST_KEY);
+  const storedSp = localStorage.getItem(PRIORITY_SP_KEY);
+  
+  if (storedSt) {
+    userPriorityStriker = JSON.parse(storedSt);
+    fixedTopCharacters = userPriorityStriker.length > 0 ? userPriorityStriker : [...defaultTopCharacters];
+  }
+  if (storedSp) {
+    userPrioritySpecial = JSON.parse(storedSp);
+    fixedTopCharactersSP = userPrioritySpecial.length > 0 ? userPrioritySpecial : [...defaultTopCharactersSP];
+  }
+}
+
+function refreshDropdowns() {
+  const sortedSt = sortCharactersByPriority(stCharacterData, usageFreq, fixedTopCharacters);
+  const sortedSp = sortCharactersByPriority(spCharacterData, usageFreq, fixedTopCharactersSP);
+  const allSorted = [...sortedSt, ...sortedSp];
+
+  createDropdown('userIcon', allSorted, () => {});
+  createDropdown('D1', sortedSt, () => {}); createDropdown('D2', sortedSt, () => {});
+  createDropdown('D3', sortedSt, () => {}); createDropdown('D4', sortedSt, () => {});
+  createDropdown('S1', sortedSp, () => {}); createDropdown('S2', sortedSp, () => {});
+  createDropdown('A1', sortedSt, () => {}); createDropdown('A2', sortedSt, () => {});
+  createDropdown('A3', sortedSt, () => {}); createDropdown('A4', sortedSt, () => {});
+  createDropdown('SP1', sortedSp, () => {}); createDropdown('SP2', sortedSp, () => {});
 }
 
 // 攻め編成のバックアップ（元に戻す用）
@@ -839,6 +896,263 @@ document.getElementById('pageShareBtn').addEventListener('click', () => {
 });
 
 // ========================================
+// 優先生徒設定モーダル
+// ========================================
+
+let tempPriorityStriker = [];
+let tempPrioritySpecial = [];
+let draggedItem = null;
+let draggedType = null;
+
+function openPriorityModal() {
+  // 現在の設定をコピー
+  tempPriorityStriker = [...(userPriorityStriker.length > 0 ? userPriorityStriker : defaultTopCharacters)];
+  tempPrioritySpecial = [...(userPrioritySpecial.length > 0 ? userPrioritySpecial : defaultTopCharactersSP)];
+  
+  // モーダル用のドロップダウンを作成
+  createPriorityDropdown('addStriker', stCharacterData);
+  createPriorityDropdown('addSpecial', spCharacterData);
+  
+  renderPrioritySelected();
+  document.getElementById('priorityModal').classList.remove('hidden');
+}
+
+function closePriorityModal() {
+  document.getElementById('priorityModal').classList.add('hidden');
+}
+
+function createPriorityDropdown(targetId, characters) {
+  const wrapper = document.getElementById(`dropdown-${targetId}`);
+  if (!wrapper) return;
+  wrapper.innerHTML = '';
+
+  const selected = document.createElement('div');
+  selected.className = 'dropdown-select';
+  selected.innerHTML = '<span class="placeholder-text">生徒を選択...</span>';
+  wrapper.appendChild(selected);
+
+  const options = document.createElement('div');
+  options.className = 'dropdown-options';
+
+  // 検索入力欄
+  const searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.className = 'dropdown-search';
+  searchInput.placeholder = '名前で検索...';
+  options.appendChild(searchInput);
+
+  // オプションコンテナ
+  const optionsContainer = document.createElement('div');
+  optionsContainer.className = 'dropdown-options-list';
+  
+  characters.forEach(char => {
+    const opt = document.createElement('div');
+    opt.className = 'option';
+    opt.dataset.name = char.name.toLowerCase();
+    opt.innerHTML = `<img src="${char.image}" alt="${char.name}"><span>${char.name}</span>`;
+    opt.addEventListener('click', () => {
+      selected.innerHTML = `<img src="${char.image}" alt="${char.name}"><span class="selected-name">${char.name}</span>`;
+      selected.dataset.value = char.name;
+      options.style.display = 'none';
+      searchInput.value = '';
+      filterPriorityOptions(optionsContainer, '');
+    });
+    optionsContainer.appendChild(opt);
+  });
+
+  options.appendChild(optionsContainer);
+  wrapper.appendChild(options);
+
+  // フィルタリング
+  searchInput.addEventListener('input', (e) => {
+    filterPriorityOptions(optionsContainer, e.target.value);
+  });
+
+  searchInput.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  selected.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.dropdown-options').forEach(opt => {
+      if (opt !== options) opt.style.display = 'none';
+    });
+    const isOpening = options.style.display !== 'block';
+    options.style.display = isOpening ? 'block' : 'none';
+    if (isOpening) {
+      searchInput.value = '';
+      filterPriorityOptions(optionsContainer, '');
+      setTimeout(() => searchInput.focus(), 10);
+    }
+  });
+}
+
+function filterPriorityOptions(container, query) {
+  const lowerQuery = query.toLowerCase();
+  container.querySelectorAll('.option').forEach(opt => {
+    const name = opt.dataset.name;
+    opt.style.display = name.includes(lowerQuery) ? 'flex' : 'none';
+  });
+}
+
+function renderPrioritySelected() {
+  renderPriorityList('priorityStrikerSelected', tempPriorityStriker, stImages, 'striker');
+  renderPriorityList('prioritySpecialSelected', tempPrioritySpecial, spImages, 'special');
+}
+
+function renderPriorityList(containerId, items, images, type) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = items.map((name, index) => {
+    const img = images[name] || '';
+    return `<div class="priority-char" draggable="true" data-name="${name}" data-index="${index}" data-type="${type}">
+      <img src="${img}" alt="${name}" title="${name}">
+      <span>${name}</span>
+      <button class="remove-btn" data-name="${name}" data-type="${type}">✕</button>
+    </div>`;
+  }).join('');
+  
+  // イベントリスナー設定
+  setupDragAndDrop(container, type);
+  setupRemoveButtons(container, type);
+}
+
+function setupDragAndDrop(container, type) {
+  const items = container.querySelectorAll('.priority-char');
+  
+  items.forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+      draggedItem = item;
+      draggedType = type;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      draggedItem = null;
+      draggedType = null;
+      container.querySelectorAll('.priority-char').forEach(el => {
+        el.classList.remove('drag-over');
+      });
+    });
+    
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (draggedType !== type) return;
+      e.dataTransfer.dropEffect = 'move';
+      item.classList.add('drag-over');
+    });
+    
+    item.addEventListener('dragleave', () => {
+      item.classList.remove('drag-over');
+    });
+    
+    item.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (draggedType !== type || !draggedItem || draggedItem === item) return;
+      
+      const items = type === 'striker' ? tempPriorityStriker : tempPrioritySpecial;
+      const fromIndex = parseInt(draggedItem.dataset.index);
+      const toIndex = parseInt(item.dataset.index);
+      
+      // 配列内で要素を移動
+      const [movedItem] = items.splice(fromIndex, 1);
+      items.splice(toIndex, 0, movedItem);
+      
+      renderPrioritySelected();
+    });
+  });
+}
+
+function setupRemoveButtons(container, type) {
+  container.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const name = btn.dataset.name;
+      if (type === 'striker') {
+        tempPriorityStriker = tempPriorityStriker.filter(n => n !== name);
+      } else {
+        tempPrioritySpecial = tempPrioritySpecial.filter(n => n !== name);
+      }
+      renderPrioritySelected();
+    });
+  });
+}
+
+function addPriorityCharacter(type) {
+  const dropdownId = type === 'striker' ? 'addStriker' : 'addSpecial';
+  const wrapper = document.getElementById(`dropdown-${dropdownId}`);
+  const selected = wrapper.querySelector('.dropdown-select');
+  const name = selected.dataset.value;
+  
+  if (!name) {
+    Swal.fire({
+      title: '生徒を選択してください',
+      icon: 'warning',
+      timer: 1500,
+      showConfirmButton: false
+    });
+    return;
+  }
+  
+  const targetArray = type === 'striker' ? tempPriorityStriker : tempPrioritySpecial;
+  
+  if (targetArray.includes(name)) {
+    Swal.fire({
+      title: 'すでに追加されています',
+      icon: 'info',
+      timer: 1500,
+      showConfirmButton: false
+    });
+    return;
+  }
+  
+  targetArray.push(name);
+  renderPrioritySelected();
+  
+  // ドロップダウンをリセット
+  selected.innerHTML = '<span class="placeholder-text">生徒を選択...</span>';
+  selected.dataset.value = '';
+}
+
+document.getElementById('prioritySettingsBtn').addEventListener('click', openPriorityModal);
+document.getElementById('closePriorityModal').addEventListener('click', closePriorityModal);
+document.querySelector('.modal-overlay').addEventListener('click', closePriorityModal);
+
+document.getElementById('addStrikerBtn').addEventListener('click', () => {
+  addPriorityCharacter('striker');
+});
+
+document.getElementById('addSpecialBtn').addEventListener('click', () => {
+  addPriorityCharacter('special');
+});
+
+document.getElementById('resetPriorityBtn').addEventListener('click', () => {
+  tempPriorityStriker = [...defaultTopCharacters];
+  tempPrioritySpecial = [...defaultTopCharactersSP];
+  renderPrioritySelected();
+});
+
+document.getElementById('savePriorityBtn').addEventListener('click', () => {
+  userPriorityStriker = [...tempPriorityStriker];
+  userPrioritySpecial = [...tempPrioritySpecial];
+  fixedTopCharacters = userPriorityStriker.length > 0 ? userPriorityStriker : [...defaultTopCharacters];
+  fixedTopCharactersSP = userPrioritySpecial.length > 0 ? userPrioritySpecial : [...defaultTopCharactersSP];
+  
+  savePriorityCharacters();
+  refreshDropdowns();
+  closePriorityModal();
+  
+  Swal.fire({
+    title: '保存しました',
+    text: '優先表示生徒の設定を更新しました',
+    icon: 'success',
+    timer: 1500,
+    showConfirmButton: false
+  });
+});
+
+// ========================================
 // 初期化
 // ========================================
 
@@ -855,6 +1169,7 @@ Promise.all([
   spCharacterData = spData;
 
   loadFreq();
+  loadPriorityCharacters();
 
   const sortedSt = sortCharactersByPriority(stCharacterData, usageFreq, fixedTopCharacters);
   const sortedSp = sortCharactersByPriority(spCharacterData, usageFreq, fixedTopCharactersSP);
