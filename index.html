@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="3;url=https://kur-3dcg.github.io/ba-formation-manager/">
+  <title>移転しました - 戦術対抗戦 編成管理</title>
+  <style>
+    body {
+      font-family: 'M PLUS 1p', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #f0f4f8;
+      color: #3d4a5c;
+    }
+    .redirect-box {
+      text-align: center;
+      background: #fff;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(60, 80, 100, 0.08);
+      max-width: 480px;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 12px; }
+    p { margin-bottom: 16px; color: #6b7a8f; }
+    a { color: #5c9ce6; font-weight: bold; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="redirect-box">
+    <h1>このページは移転しました</h1>
+    <p><span id="sec">3</span> 秒後に自動で移動します</p>
+    <p><a href="https://kur-3dcg.github.io/ba-formation-manager/">新しいページはこちら</a></p>
+  </div>
+  <script>
+    let s = 3;
+    setInterval(() => { s--; if (s >= 0) document.getElementById('sec').textContent = s; }, 1000);
+  </script>
+</body>
+</html>
